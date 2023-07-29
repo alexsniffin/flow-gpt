@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AutoGPT Thing</title>
+    <style>
+        body {
+            background-color: #282c34 !important;
+            color: #a2a7b2 !important;
+            font-family: Arial, sans-serif;
+            padding: 10px;
+            position: relative;
+        }
+        .message {
+            border: 1px solid #44475a;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        p {
+            margin: 0;
+            padding: 0;
+        }
+        #clearBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #44475a;
+            color: #a2a7b2;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<button id="clearBtn" onclick="clearContent()">Clear</button>
+<h1>AutoGPT Thing</h1>
+<div id="contentDiv"></div>
+<script>
+    function objectToString(obj) {
+        let result = '';
+        for (let key in obj) {
+            if (typeof obj[key] === 'object' && obj[key] !== null) {
+                result += key.charAt(0).toUpperCase() + key.slice(1) + ': ' + objectToString(obj[key]) + '; ';
+            } else {
+                result += key.charAt(0).toUpperCase() + key.slice(1) + ': ' + obj[key] + '; ';
+            }
+        }
+        return result;
+    }
+
+    function createSocket() {
+        const socket = new WebSocket("ws://localhost:8080/ws");
+
+        socket.onopen = function(e) {
+            console.log("Connection established");
+        };
+
+        socket.onmessage = function(event) {
+            console.log("Received: " + event.data);
+
+            const contentDiv = document.getElementById('contentDiv');
+            const div = document.createElement('div');
+            div.className = 'message';
+            let jsonData;
+
+            try {
+                jsonData = JSON.parse(event.data);
+
+                Object.keys(jsonData).forEach(function(key) {
+                    const p = document.createElement('p');
+                    if (typeof jsonData[key] === 'object' && jsonData[key] !== null) {
+                        p.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ': ' + objectToString(jsonData[key]);
+                    } else {
+                        p.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ': ' + jsonData[key];
+                    }
+                    div.prepend(p);
+                });
+
+                switch (jsonData.type) {
+                    case 'critique':
+                        switch (jsonData.status) {
+                            case 'good':
+                                div.style.borderColor = 'green';
+                                break;
+                            case 'bad':
+                                div.style.borderColor = 'yellow';
+                                break;
+                            default:
+                                console.log("Unhandled status:", jsonData.status);
+                                break;
+                        }
+                        break;
+                    case 'complete':
+                        div.style.borderColor = 'green';
+                        break;
+                    default:
+                        console.log("Unhandled Type:", jsonData.type);
+                        break;
+                }
+            } catch (e) {
+                console.error("Error while parsing JSON:", e.message);
+                div.textContent = event.data;
+            }
+            contentDiv.prepend(div);
+        };
+
+        socket.onerror = function(error) {
+            console.log("Error: " + error.message);
+        };
+
+        socket.onclose = function(event) {
+            if (event.wasClean) {
+                console.log(`Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+            } else {
+                console.log('Connection closed unexpectedly');
+            }
+
+            setTimeout(createSocket, 3000);
+        };
+
+        return socket;
+    }
+
+    function clearContent() {
+        const contentDiv = document.getElementById('contentDiv');
+        contentDiv.innerHTML = '';
+    }
+
+    createSocket();
+</script>
+</body>
+</html>
