@@ -1,6 +1,6 @@
 # FlowGPT
 
-Another attempt at building an AutoGPT-like thing.
+Another attempt at building an AutoGPT-like thing based on [first project go-auto-gpt](https://github.com/alexsniffin/go-auto-gpt).
 
 Instead of using the common plan and task pattern, FlowGPT will attempt to maintain internal dialogue to determine the correct steps to solve a problem.
 
